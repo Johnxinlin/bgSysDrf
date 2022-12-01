@@ -27,3 +27,11 @@ class ClassesSerializer(serializers.ModelSerializer):
             'students': [i for i in serializer.data if 2 in i['groups']]
         }
         return data
+
+class CreateUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'email']
+        extra_kwargs = {
+            'email': {'required': True}
+        }

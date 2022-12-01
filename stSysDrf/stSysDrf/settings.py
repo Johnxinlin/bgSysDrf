@@ -15,6 +15,7 @@ import os, sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 from config.dbs.redisConfig import LOCATION
+from config.emailConfig import EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, BASE_DIR)
@@ -42,7 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'users',
-    'school'
+    'school',
+    'work'
 ]
 
 MIDDLEWARE = [
@@ -192,6 +194,15 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
     ),
 }
+
+# 配置邮箱服务器
+EMAIL_HOST = 'smtp.qq.com'
+EMAIL_PORT = '25'
+EMAIL_HOST_USER = EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = EMAIL_HOST_PASSWORD
+# 设置是否启动安全链接
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/

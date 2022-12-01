@@ -5,16 +5,18 @@
 @contact: 1947346653@qq.com
 @software: PyCharm
 @file: urls.py
-@time: 2022/11/18 21:55
+@time: 2022/11/29 13:01
 """
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-from .views import *
+
+from work.views import LabelViewSet, TopicViewSet
 
 urlpatterns = [
-    # path('classes/<pk>/students', ClassesViewSet.as_view({'post': 'add_student'}))
+
 ]
 
 router = DefaultRouter()
-router.register('classes', ClassesViewSet)
+router.register('label', LabelViewSet)
+router.register('topics', TopicViewSet)
 urlpatterns += router.urls

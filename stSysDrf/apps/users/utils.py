@@ -39,6 +39,7 @@ def jwt_token(token, user=None, request=None):
     data = {
         'token': token,
         'id': user.id,
-        'username': user.username
+        'username': user.username,
+        'avatar': user.userdetail.avatar if hasattr(user, 'userdetail') else None
     }
     return data
