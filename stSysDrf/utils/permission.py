@@ -14,6 +14,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework.status import HTTP_204_NO_CONTENT
 
+from community.models import Article, Comment
 from work.models import Label, Topic
 
 
@@ -52,7 +53,7 @@ class LabelUpdateOrDeletePermission(BasePermission):
 
 
 class TopicUpdateOrDeletePermission(BasePermission):
-    """题目标签名更新或删除权限类"""
+    """题目更新或删除权限类"""
 
     def has_permission(self, request, view):
         user = request.user
@@ -61,6 +62,30 @@ class TopicUpdateOrDeletePermission(BasePermission):
         except Topic.DoesNotExist:
             return Response(status=HTTP_204_NO_CONTENT, data={'msg': '删除成功'})
         return user == topic.user or user.is_superuser
+
+
+class ArticleUpdateOrDeletePermission(BasePermission):
+    """文章更新或删除权限类"""
+
+    def has_permission(self, request, view):
+        user = request.user
+        try:
+            article = Article.objects.get(pk=view.kwargs['pk'])
+        except Article.DoesNotExist:
+            return Response(status=HTTP_204_NO_CONTENT, data={'msg': '删除成功'})
+        return user == article.user or user.is_superuser
+
+
+class CommentDeletePermission(BasePermission):
+    """评论删除权限类"""
+
+    def has_permission(self, request, view):
+        user = request.user
+        try:
+            comment = Comment.objects.get(pk=view.kwargs['pk'])
+        except Comment.DoesNotExist:
+            return Response(status=HTTP_204_NO_CONTENT, data={'msg': '删除成功'})
+        return user == comment.user or user.is_superuser
 
 
 def wrap_permission(*permissions, validate_permission=True):
@@ -88,6 +113,28 @@ def create_auto_current_user(func):
     def f(self, request, *args, **kwargs):
         request.POST._mutable = True  # 让请求参数可以修改
         request.data['user'] = request.user.id
+        return func(self, request, *args, **kwargs)
+
+    return f
+
+
+def update_auto_current_user(func):
+    def f(self, request, *args, **kwargs):
+        res = self.get_queryset().filter(user=request.user, id=kwargs['pk'])
+        if not res:
+            return Response({'detail': '您没有权限修改数据'})
+        request.POST._mutable = True  # 让请求参数可以修改
+        request.data['user'] = request.user.id
+        return func(self, request, *args, **kwargs)
+
+    return f
+
+
+def destroy_auto_current_user(func):
+    def f(self, request, *args, **kwargs):
+        res = self.get_queryset(id=kwargs['pk'], user=request.user)
+        if not res:
+            return Response({'detail': '您没有权限删除数据'})
         return func(self, request, *args, **kwargs)
 
     return f

@@ -7,17 +7,23 @@ from django.views import View
 from django_redis import get_redis_connection
 from rest_framework.decorators import action
 from rest_framework.mixins import RetrieveModelMixin
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
-from rest_framework.viewsets import ModelViewSet, GenericViewSet
+from rest_framework.viewsets import ModelViewSet, GenericViewSet, ReadOnlyModelViewSet
 from fdfs_client.client import Fdfs_client, get_tracker_conf
 import logging
 
+from rest_framework_extensions.cache.mixins import CacheResponseMixin
+
+from community.models import Article
+from community.serializers import ArticleSerializer
 from config.dbs.redisConfig import LOGIN_KEY_TEMPLATE, EXPIRE_TIME
 from config.fastdfsConfig import FASTDFS_SERVER_DOMAIN
-from users.models import UserDetail
-from users.serializers import UserSerializer, UserDetailSerializer
-from utils.permission import ActiveUserPermission
+from users.models import UserDetail, Area, Address
+from users.serializers import UserSerializer, UserDetailSerializer, AreaSerializer, ParentSerializer, AddressSerializer
+from utils.permission import ActiveUserPermission, create_auto_current_user, update_auto_current_user, \
+    destroy_auto_current_user
 from utils.verifyUtil import ImageVerify
 import io
 
@@ -25,10 +31,20 @@ tracker_path = get_tracker_conf('utils/fastdfs/client.conf')
 Client = Fdfs_client(tracker_path)
 logger = logging.getLogger(__name__)
 
+
 class ImageVerifyView(View):
-    """图片验证码视图类"""
+    """
+    图片验证码视图类
+    get: 获取验证码
+    """
 
     def get(self, request, uuid):
+        """
+        获取验证码
+        :param request:
+        :param uuid:
+        :return:
+        """
         im = ImageVerify()
         img, code = im.verify_code()
         img_bytes = io.BytesIO()
@@ -77,9 +93,15 @@ class UserViewSet(GenericViewSet, RetrieveModelMixin):
 
     @action(methods=["post"], detail=True)
     def avatar(self, request, pk):
+        """
+        根据用户id获取用户头像
+        :param request:
+        :param pk:
+        :return:
+        """
         # 获取到该用户
         try:
-            user = self.get_queryset().get(pk = pk)
+            user = self.get_queryset().get(pk=pk)
         except User.DoesNotExist:
             return Response(status=HTTP_404_NOT_FOUND)
         # 得到用户上传的文件
@@ -113,4 +135,48 @@ class UserViewSet(GenericViewSet, RetrieveModelMixin):
             UserDetail.objects.create(user=user, avatar=img_url)
         # 返回图片请求链接
         return Response({'data': img_url})
+
+    @action(methods=['get'], detail=True)
+    def articles(self, request, pk):
+        datas = Article.objects.filter(is_delete=False, user_id=pk)
+        serializer = ArticleSerializer(datas, many=True)
+        return Response(serializer.data)
+
+
+class AreaViewSet(CacheResponseMixin, ReadOnlyModelViewSet):
+    queryset = Area.objects.all()
+    serializer_class = AreaSerializer
+
+    def get_queryset(self):
+        if self.action == 'list':
+            return Area.objects.filter(parent=None)
+        return self.queryset
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return self.serializer_class
+        return ParentSerializer
+
+
+class AddressViewSet(ModelViewSet):
+    serializer_class = AddressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.request.user.address_set.filter(is_delete=False)
+
+    @create_auto_current_user
+    def create(self, request, *args, **kwargs):
+        if self.get_queryset().count() >= 10:
+            return Response({'detail': '收货地址数量超过上限10条'}, status=HTTP_400_BAD_REQUEST)
+        return ModelViewSet.create(self, request, *args, **kwargs)
+
+    @update_auto_current_user
+    def update(self, request, *args, **kwargs):
+        return ModelViewSet.update(self, request, *args, **kwargs)
+
+    @destroy_auto_current_user
+    def destroy(self, request, *args, **kwargs):
+        return ModelViewSet.destroy(self, request, *args, **kwargs)
+
 

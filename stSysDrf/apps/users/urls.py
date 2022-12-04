@@ -9,7 +9,7 @@
 """
 from django.urls import path
 from rest_framework_jwt.views import obtain_jwt_token
-from users.views import ImageVerifyView, UserViewSet
+from users.views import ImageVerifyView, UserViewSet, AreaViewSet, AddressViewSet
 from rest_framework.routers import DefaultRouter
 
 urlpatterns = [
@@ -18,4 +18,6 @@ urlpatterns = [
 ]
 router = DefaultRouter()
 router.register('users', UserViewSet)
+router.register('area', AreaViewSet)
+router.register('address', AddressViewSet, basename='address')
 urlpatterns += router.urls

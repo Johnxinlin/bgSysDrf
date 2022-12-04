@@ -44,7 +44,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'users',
     'school',
-    'work'
+    'work',
+    'community',
+    'shopping'
 ]
 
 MIDDLEWARE = [
@@ -179,6 +181,22 @@ CACHES = {
             }
         }
     },
+    'area': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': LOCATION % 4,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 100,
+                'decode_responses': False
+            }
+        }
+    },
+}
+
+REST_FRAMEWORK_EXTENSIONS = {
+    'DEFAULT_USE_CACHE': 'area',
+    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60 * 60
 }
 
 JWT_AUTH = {
