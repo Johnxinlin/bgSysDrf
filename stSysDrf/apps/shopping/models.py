@@ -125,3 +125,13 @@ class OrderGoods(DateTimeModelsMixin):
         verbose_name_plural = verbose_name
 
 
+class Payment(DateTimeModelsMixin):
+    trade_id = models.CharField("支付宝交易号", max_length=100, unique=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, verbose_name="订单")
+    class Meta:
+        ordering = ['-create_time']
+        db_table = "payment"
+        verbose_name = "支付信息"
+        verbose_name_plural = verbose_name
+
+

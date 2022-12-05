@@ -15,7 +15,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from django.db import transaction
 
-from shopping.models import Classification, Commodity, CommodityImg, ShoppingCart, Order, OrderGoods
+from shopping.models import Classification, Commodity, CommodityImg, ShoppingCart, Order, OrderGoods, Payment
 from users.models import Address
 
 
@@ -158,3 +158,9 @@ class OrderSerializer(ModelSerializer):
         # 清除购物车已结算的商品数据
         ShoppingCart.objects.filter(id__in=carts).delete()
         return order
+
+
+class PaymentSerializer(ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = "__all__"

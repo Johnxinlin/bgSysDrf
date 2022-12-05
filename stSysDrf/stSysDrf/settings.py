@@ -14,6 +14,8 @@ from pathlib import Path
 import os, sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+from alipay import AliPay
+
 from config.dbs.redisConfig import LOCATION
 from config.emailConfig import EMAIL_HOST_USER, EMAIL_HOST_PASSWORD
 
@@ -244,3 +246,18 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# 支付宝配置
+APPID = open(f'{BASE_DIR}/config/alipay_key/appid').read()
+APP_PRIVATE_KEY_STRING = open(f'{BASE_DIR}/config/alipay_key/app_private_key').read()
+ALIPAY_PUBLIC_KEY_STRING = open(f'{BASE_DIR}/config/alipay_key/alipay_public').read()
+
+# 实例化支付宝对象
+alipay = AliPay(
+    appid=APPID,
+    app_notify_url=None,
+    app_private_key_string=APP_PRIVATE_KEY_STRING,
+    alipay_public_key_string=ALIPAY_PUBLIC_KEY_STRING,
+    sign_type='RSA2',
+    debug=True,          # debug测试为True即为沙箱环境，生产环境需设置为False
+)

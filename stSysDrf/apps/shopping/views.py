@@ -1,20 +1,25 @@
 import logging
+from datetime import datetime
 
+from django.db import transaction
 from django.shortcuts import render
 
 # Create your views here.
 from fdfs_client.client import get_tracker_conf, Fdfs_client
+from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.status import HTTP_404_NOT_FOUND, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR, \
+    HTTP_403_FORBIDDEN
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, ViewSet
 
 from config.fastdfsConfig import FASTDFS_SERVER_DOMAIN
-from shopping.models import Classification, Commodity, CommodityImg, ShoppingCart
+from shopping.models import Classification, Commodity, CommodityImg, ShoppingCart, Payment, Order
 from shopping.serializers import ParentClassificationSerializer, CommoditySerializer, ShoppingCartSerializer, \
-    OrderSerializer
+    OrderSerializer, PaymentSerializer
+from stSysDrf.settings import alipay
 from utils.permission import TeacherPermission, wrap_permission, create_auto_current_user, update_auto_current_user, \
     destroy_auto_current_user
 
@@ -163,9 +168,76 @@ class OrderViewSet(ReadOnlyModelViewSet, CreateModelMixin):
     create: 创建订单，同时删除购物车
     list: 查看所有订单
     retrieve: 查看订单
+    status: 支付结束更新订单信息
     """
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return self.request.user.order_set.all()
+
+    @action(methods=['put'], detail=False)
+    def status(self, request):
+        # 得到支付宝回调过来的数据，在请求地址里面
+        query_dict = request.query_params
+        data = query_dict.dict()
+
+        # 核实身份
+        try:
+            sign = data.pop('sign')  # 类似于Token
+        except KeyError:
+            return Response(status=HTTP_400_BAD_REQUEST)  # 如果没有就报异常，处理异常，返回400
+
+        # 验证sign
+        res = alipay.verify(data, sign)
+        if not res:
+            return Response(status=HTTP_403_FORBIDDEN)
+
+        # 得到订单编号，支付宝交易号
+        order_id = data.get('out_trade_no')
+        trade_no = data.get('trade_no')
+
+        # 创建订单信息
+        with transaction.atomic():
+            # 开启事务
+            save_point = transaction.savepoint()  # 创建保存点
+            try:
+                # 保存支付信息
+                Payment.objects.create(order_id=order_id, trade_id=trade_no)
+
+                # 修改订单状态
+                Order.objects.filter(order_id=order_id, status=1).update(status=2)
+            except Exception as e:
+                transaction.savepoint_rollback(save_point)
+                raise serializers.ValidationError(e)  # 结束方法 响应给客户数据，错误的提示
+            else:
+                transaction.savepoint_commit(save_point)
+        return Response({'order_id': order_id, 'trade_id': trade_no})
+
+
+class PaymentViewSet(ReadOnlyModelViewSet, CreateModelMixin):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+
+    @action(methods=['get'], detail=True)
+    def pay(self, request, pk):
+        # 获取订单信息
+        try:
+            order = Order.objects.get(order_id=pk, user=request.user, status=1)
+        except Order.DoesNotExist:
+            return Response(status=HTTP_404_NOT_FOUND)
+
+        # 给到支付宝对象处理订单信息
+        order_string = alipay.api_alipay_trade_page_pay(
+            out_trade_no=order.order_id,  # 订单号
+            total_amount=str(order.total_amount),  # 要支付的总金额
+            subject=f'教师学生学习交流系统 {order.order_id}',  # 标题
+            return_rul="http://127.0.0.1:8001/home/order/success",  # 前端支付界面支付成功后跳转回来的路由
+            # timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        )
+
+        # 将订单信息发送给支付宝
+        pay_url = 'https://openapi.alipaydev.com/gateway.do?' + order_string
+        # 返回支付页面地址
+        return Response({'pay_url': pay_url})

@@ -9,7 +9,7 @@
 """
 from rest_framework.routers import DefaultRouter
 
-from shopping.views import ClassificationViewSet, CommodityViewSet, ShoppingCartViewSet, OrderViewSet
+from shopping.views import ClassificationViewSet, CommodityViewSet, ShoppingCartViewSet, OrderViewSet, PaymentViewSet
 
 urlpatterns = []
 router = DefaultRouter()
@@ -17,4 +17,5 @@ router.register("classification", ClassificationViewSet)
 router.register("commodity", CommodityViewSet)
 router.register("cart", ShoppingCartViewSet, basename='shoppingcart')
 router.register("order", OrderViewSet, basename='order')
+router.register("payment", PaymentViewSet)
 urlpatterns += router.urls
