@@ -30,9 +30,9 @@ sys.path.insert(1, os.path.join(BASE_DIR, 'apps'))
 SECRET_KEY = 'django-insecure-k=g$(-8jzy!c1)_tlm!*$)px-hi8vp%-b3=07vf1levunp^^95'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['stSysDrf.ligui.com', '10.0.2.15', 'localhost', '127.0.0.1']
 
 # Application definition
 
@@ -92,15 +92,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'OPTIONS': {
-            'read_default_file': 'config/dbs/mysql.cnf'
+            'read_default_file': 'config/dbs/mysql_pro.cnf'
         }
     },
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.mysql',
-    #     'OPTIONS': {
-    #         'read_default_file': 'config/dbs/mysql_pro.cnf'
-    #     }
-    # },
 }
 
 # Password validation

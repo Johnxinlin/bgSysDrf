@@ -33,7 +33,7 @@ class SonCommentSerializer(ModelSerializer):
         fields = '__all__'
 
     def get_reply_username(self, comment):
-        name = Comment.objects.get(id=comment.id).user.username
+        name = Comment.objects.get(id=comment.reply_comment).user.username
         return name
 
 
