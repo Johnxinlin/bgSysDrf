@@ -4070,3 +4070,4 @@ sudo nginx -t -c /etc/nginx/nginx.conf
 ​	然后将前端文件一起部署到nginx，打包前端文件后拖拽至“云服务器"
 
 ​	在/etc/nginx/conf.d/下配置nginx_stSysDrf_pro.conf，如上注释即可。
+
